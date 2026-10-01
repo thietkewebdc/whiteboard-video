@@ -1,0 +1,16 @@
+# Bí mật — KHÔNG commit
+.env
+
+# Môi trường Python cục bộ
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Dự án render ra khi dùng skill (nặng: mp4, ảnh, giọng, cache)
+assets/whiteboard/
+**/tts-cache/
+
+# Hệ thống
+.DS_Store
+Thumbs.db
