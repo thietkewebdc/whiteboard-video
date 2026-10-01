@@ -33,6 +33,7 @@ FONT_BOLD = ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/Library/Font
 FONT_REG = ["/System/Library/Fonts/Supplemental/Arial.ttf", "/Library/Fonts/Arial.ttf",
             "C:/Windows/Fonts/arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
 INK = (24, 24, 24)
+TOP_BAND_H = 130                          # dải trên cùng: vùng TikTok dùng cho thanh tab và tìm kiếm
 
 SKILL = Path(__file__).resolve().parent.parent
 
@@ -175,9 +176,9 @@ def load_brand(name: str) -> dict:
     raise SystemExit(f"[loi] khong tim thay thuong hieu '{name}' trong assets/brand/brands.json")
 
 
-def _logo(brand):
+def _logo(brand, height=None):
     logo = Image.open(brand["logo_path"]).convert("RGBA")
-    lh = brand.get("logo_height", 78)
+    lh = height or brand.get("logo_height", 78)
     lw = round(logo.width * lh / logo.height)
     return logo.resize((lw, lh), Image.LANCZOS)
 
@@ -188,10 +189,26 @@ def draw_overlay(brand: dict, hook: str, bg, out_png: Path):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     band, accent = tuple(brand["band"]), tuple(brand["accent"])
-    d.rectangle([0, 0, W, HEADER_H], fill=tuple(brand["header_bg"]) + (255,))
-    d.rectangle([0, HEADER_H - 8, W, HEADER_H], fill=band + (255,))
-    logo = _logo(brand)
-    img.alpha_composite(logo, (CX - logo.width // 2, 136))
+    style = brand.get("header_style", "band")
+    logo = _logo(brand, 84 if style == "band" else 78)
+    if style == "plain":
+        d.rectangle([0, 0, W, HEADER_H], fill=tuple(brand["header_bg"]) + (255,))
+        d.rectangle([0, HEADER_H - 8, W, HEADER_H], fill=band + (255,))
+        img.alpha_composite(logo, (CX - logo.width // 2, 136))
+    elif style == "pill":
+        d.rectangle([0, 0, W, HEADER_H], fill=band + (255,))
+        d.rectangle([0, HEADER_H - 6, W, HEADER_H], fill=tuple(brand["chip_line"]) + (255,))
+        pw, ph = logo.width + 80, logo.height + 28
+        py = 120 + (HEADER_H - 6 - 120 - ph) // 2
+        d.rounded_rectangle([CX - pw // 2, py, CX + pw // 2, py + ph], radius=ph // 2,
+                            fill=tuple(brand["header_bg"]) + (255,))
+        img.alpha_composite(logo, (CX - logo.width // 2, py + 14))
+    else:  # band: dải màu thương hiệu phía trên (nơi TikTok đặt thanh tab) + dải kem chứa logo
+        d.rectangle([0, 0, W, TOP_BAND_H], fill=band + (255,))
+        d.rectangle([0, TOP_BAND_H, W, HEADER_H], fill=tuple(brand["header_bg"]) + (255,))
+        d.rectangle([0, TOP_BAND_H, W, TOP_BAND_H + 5], fill=tuple(brand["chip_line"]) + (255,))
+        d.rectangle([0, HEADER_H - 6, W, HEADER_H], fill=band + (255,))
+        img.alpha_composite(logo, (CX - logo.width // 2, TOP_BAND_H + 5 + (HEADER_H - 6 - TOP_BAND_H - 5 - logo.height) // 2))
     d.rectangle([0, HEADER_H, W, WIN_Y], fill=tuple(bg) + (255,))
     draw_hook(d, hook, (SAFE_X0 + 10, HOOK_Y0, SAFE_X1 - 10, HOOK_Y1), accent, cx=CX)
     d.rectangle([0, BAND_Y, W, H], fill=band + (255,))
@@ -254,10 +271,12 @@ def make_thumbnail(brand: dict, hook: str, bg, scene_png: Path, ann_path: Path, 
     img = Image.new("RGBA", (W, H), tuple(bg) + (255,))
     d = ImageDraw.Draw(img)
     band, accent = tuple(brand["band"]), tuple(brand["accent"])
-    d.rectangle([0, 0, W, 200], fill=tuple(brand["header_bg"]) + (255,))
+    d.rectangle([0, 0, W, 64], fill=band + (255,))
+    d.rectangle([0, 64, W, 200], fill=tuple(brand["header_bg"]) + (255,))
+    d.rectangle([0, 64, W, 69], fill=tuple(brand["chip_line"]) + (255,))
     d.rectangle([0, 192, W, 200], fill=band + (255,))
-    logo = _logo(brand)
-    img.alpha_composite(logo, ((W - logo.width) // 2, 60))
+    logo = _logo(brand, 84)
+    img.alpha_composite(logo, ((W - logo.width) // 2, 69 + (192 - 69 - logo.height) // 2))
     # hook nằm trọn vùng giữa để không bị cắt khi lưới hồ sơ hiển thị tỉ lệ 3:4
     draw_hook(d, hook, (60, 250, W - 60, 900), accent, max_size=150, min_size=84, max_lines=4, cx=W // 2)
     # hình minh hoạ: đối tượng đầu tiên của cảnh mở đầu, hoà nền giấy vào nền bìa
