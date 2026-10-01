@@ -11,6 +11,12 @@ __pycache__/
 assets/whiteboard/
 **/tts-cache/
 
+# Logo và cấu hình thương hiệu của khách hàng (dùng assets/brands.example.json làm mẫu)
+assets/brand/
+
+# Gói xuất video
+video-xuat/
+
 # Hệ thống
 .DS_Store
 Thumbs.db

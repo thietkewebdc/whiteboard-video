@@ -1,0 +1,108 @@
+{
+ "dc": {
+  "logo": "assets/brand/logo-dc.png",
+  "logo_height": 78,
+  "header_bg": [
+   255,
+   251,
+   243
+  ],
+  "band": [
+   192,
+   16,
+   16
+  ],
+  "accent": [
+   200,
+   24,
+   24
+  ],
+  "chip_line": [
+   255,
+   190,
+   140
+  ],
+  "chip_text": [
+   255,
+   240,
+   230
+  ],
+  "services": [
+   "Thiết kế web",
+   "Web bán hàng",
+   "SEO",
+   "Bảo mật SSL",
+   "Bảo trì",
+   "Hỗ trợ 24/7"
+  ],
+  "sub": {
+   "text": [
+    255,
+    255,
+    255
+   ],
+   "box": [
+    192,
+    16,
+    16
+   ],
+   "alpha": 38,
+   "size": 54,
+   "outline": 14
+  },
+  "export_folder": "dc"
+ },
+ "bluesea": {
+  "logo": "assets/brand/logo-bluesea.png",
+  "logo_height": 90,
+  "header_bg": [
+   255,
+   251,
+   243
+  ],
+  "band": [
+   0,
+   80,
+   144
+  ],
+  "accent": [
+   214,
+   70,
+   20
+  ],
+  "chip_line": [
+   96,
+   170,
+   224
+  ],
+  "chip_text": [
+   222,
+   238,
+   250
+  ],
+  "services": [
+   "FCL",
+   "LCL",
+   "Door-to-door",
+   "Hải quan",
+   "Bảo hiểm",
+   "Vận tải nội địa"
+  ],
+  "sub": {
+   "text": [
+    255,
+    255,
+    255
+   ],
+   "box": [
+    0,
+    80,
+    144
+   ],
+   "alpha": 38,
+   "size": 54,
+   "outline": 14
+  },
+  "export_folder": "blue-sea"
+ }
+}

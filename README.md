@@ -11,6 +11,7 @@ Phù hợp cho: video kể chuyện ngắn, bài giảng, giải thích kiến t
 - **Tạo ảnh nét vẽ bằng OpenAI** — `scripts/gen_openai_image.py` gọi OpenAI Images API (`gpt-image-2`…), đọc `OPENAI_API_KEY` từ `.env`, xuất PNG vào thư mục dự án.
 - **Giọng đọc VieNeu-TTS offline** — `--provider vieneu` trong `tts_narration.py` + `scripts/vieneu_batch.py`: nạp model một lần, dùng [VieNeu-TTS](https://github.com/pnnbao97/VieNeu-TTS) chạy trên máy, nhiều giọng dựng sẵn hoặc clone giọng (`--vieneu-ref`). Cấu hình `VIENEU_ROOT` trong `.env`.
 - **Xuất video dọc 9:16 cho TikTok** — render với `--cap-long-edge 1920`; ảnh pad lên 1080×1920 nền kem. Phụ đề dọc phải burn bằng file `.ass` khai báo `PlayResX/PlayResY` đúng (filter `subtitles` mặc định 384×288 làm chữ phóng to & văng khỏi khung).
+- **Đóng gói video dọc cho TikTok / Reels / Shorts** — `scripts/finish_social.py`: dựng lại bố cục theo vùng an toàn của nền tảng và quy tắc chia ba, tiêu đề hook có từ khoá nhấn, phụ đề màu nổi, ảnh bìa (thumbnail) 1080x1920, tên file theo tiêu đề không dấu (`ten-la-video.mp4`), kèm nội dung đăng Fanpage / TikTok / Zalo / YouTube Shorts. Xem mục "Đóng gói video dọc 9:16" trong `SKILL.md`.
 - Sửa `render_annotation_preview.py` để chọn font đa nền tảng (macOS/Linux/Windows).
 
 ## Xem thử

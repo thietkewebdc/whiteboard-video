@@ -203,3 +203,28 @@ Trước/sau khi render, xác nhận:
 - Có giọng đọc: giọng, phụ đề và hình khớp nhau; không có khoảng lặng dài ngoài các chỗ nghỉ cố ý.
 
 Muốn đổi hiệu ứng thì chỉnh annotation (vùng/thứ tự/thời gian) trên trang xem trước (`assets/preview.html`) và lưu trước, rồi mới render bằng dòng lệnh; đừng render đi render lại khi chưa sửa gì.
+
+
+## Đóng gói video dọc 9:16 cho TikTok / Reels / YouTube Shorts (bắt buộc khi làm video đăng mạng xã hội)
+
+Làm video dọc (1080x1920) để đăng mạng xã hội thì **không** dùng `finish_vertical.py` cũ nữa mà dùng `scripts/finish_social.py`. Quy tắc bắt buộc:
+
+1. **Vùng an toàn của nền tảng.** Giao diện TikTok/Reels/Shorts che một phần video. Theo các hướng dẫn vùng an toàn phổ biến (nguồn bên thứ ba, không phải tài liệu chính thức của TikTok): chừa khoảng **130px trên, 484px dưới, 44px trái, 140px phải** trên khung 1080x1920. Chữ quan trọng (hook, phụ đề) nằm trong khung chữ x 50..950, y 130..1436. Không đặt tiêu đề, hotline, website ở đáy video vì đúng chỗ tên kênh và chú thích đè lên.
+2. **Quy tắc chia ba (điểm thu hút).** Hai đường ngang chia ba ở y=640 và y=1280. Đối tượng đầu tiên được vẽ nằm quanh đường y=640 (nơi mắt người xem dừng), phụ đề nằm quanh đường y=1280. Bố cục được dựng sẵn trong `social_layout.py`: đầu video có logo (0-230), hook (238-496), cửa sổ hình vẽ (500-1500, mỗi cảnh tự thu phóng theo vùng vẽ), dải thương hiệu có hàng nhãn dịch vụ (1500-1920).
+3. **Tiêu đề hook.** Mỗi video có một câu hook ngắn (tối đa khoảng 45 ký tự, hai dòng), nói thẳng vào mối quan tâm của người xem, **không nói quá sự thật** (dạng câu hỏi nếu nội dung chưa chắc chắn). Từ khoá nhấn đặt trong `[...]` để hiện trong ô màu thương hiệu. Dùng `_` để giữ hai từ liền nhau không bị ngắt dòng (ví dụ `lỗ_hổng`).
+4. **Phụ đề nổi bật.** Chữ vàng trên hộp màu thương hiệu, in đậm, cỡ 54, đáy chữ không thấp hơn y=1436. Phụ đề dọc bắt buộc đốt bằng file `.ass` có `PlayResX: 1080 / PlayResY: 1920` (không dùng `force_style` trần, vì mặc định libass 384x288 làm chữ phóng quá to và văng khỏi khung).
+5. **Đặt tên file theo tiêu đề, không dấu.** Không đặt "video-1", "video-10". Tên file xuất là slug không dấu của hook, ví dụ `wordpress-vua-va-lo-hong-nghiem-trong.mp4`. Bên cạnh có `...-thumbnail.jpg` (ảnh bìa) và `...-noi-dung-dang.md` (bài đăng Fanpage, TikTok, Zalo và YouTube Shorts).
+6. **Ảnh bìa (thumbnail).** Luôn tạo ảnh bìa 1080x1920 cho TikTok và YouTube Shorts: hook to ở giữa, hình minh hoạ chính, dải thương hiệu. Nội dung chính để ở vùng giữa phòng khi lưới hồ sơ cắt tỉ lệ khác. YouTube Shorts chỉ cho tải ảnh bìa tuỳ chỉnh trong YouTube Studio trên máy tính.
+7. **Bật "Cài đặt tiết lộ nội dung" của TikTok** khi video quảng bá dịch vụ của chính doanh nghiệp (theo Quy định cộng đồng TikTok).
+
+Cách dùng:
+
+```bash
+# 1) trong thư mục dự án có plan.json, ảnh + annotation, input.srt, narration.m4a, và meta.json:
+#    {"brand": "dc", "hook": "WordPress vừa vá lỗ_hổng [NGHIÊM TRỌNG]!", "date": "Thứ Sáu 2/10/2026"}
+# 2) cấu hình thương hiệu (logo, màu, nhãn dịch vụ): copy assets/brands.example.json thành assets/brand/brands.json
+<ENV_PY> scripts/finish_social.py assets/whiteboard/<tên-dự-án>               # đóng gói đầy đủ
+<ENV_PY> scripts/finish_social.py assets/whiteboard/<tên-dự-án> --preview 20  # xem thử 20 giây đầu
+```
+
+Gói xuất nằm trong `~/Documents/code/video-xuat/<thương-hiệu>/` (đổi bằng `--export-dir`). Đã có thêm các công cụ: `scripts/auto_annotate.py` (tự chia vùng cho ảnh xếp thành dải ngang), `scripts/social_layout.py` (bố cục, ảnh bìa, slug), `scripts/gen_openai_image.py` (tạo ảnh), `scripts/vieneu_batch.py` (giọng VieNeu).
