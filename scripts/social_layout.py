@@ -60,7 +60,7 @@ def parse_hook(hook: str):
         if not part:
             continue
         if part.startswith("["):
-            toks.append({"text": part[1:-1], "accent": True, "glue": False})
+            toks.append({"text": part[1:-1].replace("_", " "), "accent": True, "glue": False})
         else:
             for w in part.split():
                 glue = bool(re.fullmatch(r"[!?.,:;…)%]+", w)) and bool(toks)
