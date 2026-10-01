@@ -77,15 +77,18 @@ def youtube_block(hook_plain: str, post_text: str) -> str:
            "Ảnh bìa: tải file -thumbnail.jpg lên YouTube Studio (máy tính), mục Shorts > Thumbnail.\n"
 
 
-def export_package(proj: Path, meta: dict, final: Path, thumb: Path, export_dir: Path, slug: str):
+def write_post(proj: Path, meta: dict, export_dir: Path, slug: str):
     export_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(final, export_dir / f"{slug}.mp4")
-    shutil.copy2(thumb, export_dir / f"{slug}-thumbnail.jpg")
     post = ""
     for name in ("bai-dang-3-kenh.md", "bai-dang.md"):
         if (proj / name).exists():
             post = (proj / name).read_text(encoding="utf-8")
             break
+    # nếu bài 3 kênh chỉ trỏ sang bai-dang.md thì nhúng nguyên văn bản Fanpage đầy đủ
+    full = proj / "bai-dang.md"
+    post = re.sub(r"^# Video[^\n]*\n+", "", post)
+    if full.exists():
+        post = re.sub(r"Xem file bai-dang\.md[^\n]*", lambda m: "\n" + full.read_text(encoding="utf-8").strip(), post)
     head = [f"# {sl.strip_markup(meta['hook'])}", "",
             f"- Video: `{slug}.mp4`", f"- Ảnh bìa: `{slug}-thumbnail.jpg`"]
     if meta.get("date"):
@@ -94,12 +97,20 @@ def export_package(proj: Path, meta: dict, final: Path, thumb: Path, export_dir:
     (export_dir / f"{slug}-noi-dung-dang.md").write_text(body, encoding="utf-8")
 
 
+def export_package(proj: Path, meta: dict, final: Path, thumb: Path, export_dir: Path, slug: str):
+    export_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(final, export_dir / f"{slug}.mp4")
+    shutil.copy2(thumb, export_dir / f"{slug}-thumbnail.jpg")
+    write_post(proj, meta, export_dir, slug)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("project")
     ap.add_argument("--export-dir", default=None)
     ap.add_argument("--jobs", type=int, default=2)
     ap.add_argument("--preview", type=int, default=0, help="chỉ xuất N giây đầu để xem thử, không đóng gói")
+    ap.add_argument("--thumb-only", action="store_true", help="chỉ làm lại ảnh bìa và chép vào gói xuất")
     ap.add_argument("--reuse", action="store_true", help="dùng lại clip cửa sổ đã có (xem thử nhanh)")
     ap.add_argument("--sub-style", choices=["box", "yellow", "yellowbox"], default=None)
     a = ap.parse_args()
@@ -111,6 +122,18 @@ def main():
     plan = json.loads((proj / "plan.json").read_text(encoding="utf-8"))
     images = [s["image"] for s in plan["scenes"]]
     slug = meta.get("slug") or sl.slugify(sl.strip_markup(hook))
+
+    if a.thumb_only:
+        clips = [proj / f"{Path(im).stem}-whiteboard.mp4" for im in images]
+        bg = paper_color(clips[0], proj)
+        thumb = proj / f"{slug}-thumbnail.jpg"
+        stem0 = Path(images[0]).stem
+        sl.make_thumbnail(brand, hook, bg, proj / images[0], proj / f"{stem0}.annotation.json", thumb)
+        export_dir = Path(a.export_dir) if a.export_dir else DEFAULT_EXPORT / brand.get("export_folder", meta["brand"])
+        shutil.copy2(thumb, export_dir / f"{slug}-thumbnail.jpg")
+        write_post(proj, meta, export_dir, slug)
+        print(f"THUMB={export_dir / (slug + '-thumbnail.jpg')}")
+        return
 
     # 1) render các cảnh nếu chưa có
     with ThreadPoolExecutor(max_workers=a.jobs) as ex:

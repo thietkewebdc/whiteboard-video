@@ -49,7 +49,7 @@ def slugify(text: str, max_len: int = 70) -> str:
 
 
 def strip_markup(hook: str) -> str:
-    return re.sub(r"[\[\]]", "", hook)
+    return re.sub(r"[\[\]]", "", hook).replace("_", " ")
 
 
 def parse_hook(hook: str):
@@ -95,23 +95,33 @@ def draw_hook(d, hook, box, accent, max_size=104, min_size=56, max_lines=3, cx=N
     x0, y0, x1, y1 = box
     cx = cx if cx is not None else (x0 + x1) // 2
     toks = parse_hook(hook)
-    for size in range(max_size, min_size - 1, -4):
-        fnt = font(FONT_BOLD, size)
-        pad = max(10, size // 7)
-        lines = _wrap(d, toks, fnt, x1 - x0, pad)
-        if len(lines) > 1:
-            lo, hi = max(w for _, w in lines) * 0.5, x1 - x0
-            for _i in range(14):
-                mid = (lo + hi) / 2
-                if len(_wrap(d, toks, fnt, mid, pad)) <= len(lines):
-                    hi = mid
-                else:
-                    lo = mid
-            lines = _wrap(d, toks, fnt, hi + 1, pad)
-        lh = int(size * 1.2)
-        if (len(lines) <= max_lines and len(lines) * lh <= (y1 - y0)
-                and max(w for _, w in lines) <= (x1 - x0) + 1):
+    chosen = None
+    for limit in sorted({min(3, max_lines), max_lines}):          # ưu tiên bố cục gọn tối đa 3 dòng
+        for size in range(max_size, min_size - 1, -4):
+            fnt = font(FONT_BOLD, size)
+            pad = max(10, size // 7)
+            lines = _wrap(d, toks, fnt, x1 - x0, pad)
+            if len(lines) > 1:
+                lo, hi = max(w for _, w in lines) * 0.5, x1 - x0
+                for _i in range(14):
+                    mid = (lo + hi) / 2
+                    if len(_wrap(d, toks, fnt, mid, pad)) <= len(lines):
+                        hi = mid
+                    else:
+                        lo = mid
+                lines = _wrap(d, toks, fnt, hi + 1, pad)
+            lh = int(size * 1.2)
+            if (len(lines) <= limit and len(lines) * lh <= (y1 - y0)
+                    and max(w for _, w in lines) <= (x1 - x0) + 1):
+                chosen = (size, fnt, pad, lines, lh)
+                break
+        if chosen:
             break
+    if not chosen:                                                # không vừa: dùng cỡ nhỏ nhất
+        fnt = font(FONT_BOLD, min_size); size = min_size; pad = max(10, size // 7)
+        lines = _wrap(d, toks, fnt, x1 - x0, pad); lh = int(size * 1.2)
+        chosen = (size, fnt, pad, lines, lh)
+    size, fnt, pad, lines, lh = chosen
     total = len(lines) * lh
     y = y0 + ((y1 - y0) - total) // 2
     space = d.textlength(" ", font=fnt)
