@@ -17,7 +17,11 @@ plan.json (đặt trong thư mục dự án):
 }
 cues = chỉ số câu (bắt đầu từ 1) trong input.srt, đóng hai đầu.
 Thứ tự trong "bands" là thứ tự VẼ (theo lời đọc). Thêm "band": N (0 = dải trên cùng) vào một mục
-nếu thứ tự vẽ khác thứ tự trên → dưới của ảnh.
+nếu thứ tự vẽ khác thứ tự trên → dưới của ảnh. Thêm "box": [x0, y0, x1, y1] vào mọi mục của một cảnh để
+chỉ định khung bằng tay khi tự phát hiện không tách được (nét mảnh, các nhóm sát nhau).
+
+Video ngang 16:9: thêm "layout": "landscape" ở cấp trên cùng của plan.json. Ảnh được cắt giữa/thu về 1280x720,
+các nhóm đối tượng xếp thành CỘT từ trái sang phải; "bands" khi đó là các cột (thứ tự vẽ như cũ).
 
 Dùng:  python auto_annotate.py <thư-mục-dự-án>
 """
@@ -55,7 +59,15 @@ def parse_srt(path: Path):
 
 def pad_to_canvas(path: Path) -> Image.Image:
     im = Image.open(path).convert("RGB")
-    if im.size != (W, H):
+    if im.size != (W, H) and W > H:
+        # ngang: cắt giữa về tỉ lệ 16:9 rồi thu về cỡ chuẩn
+        tgt_h = int(im.width * H / W)
+        if im.height > tgt_h:
+            top = (im.height - tgt_h) // 2
+            im = im.crop((0, top, im.width, top + tgt_h))
+        im = im.resize((W, H), Image.LANCZOS)
+        im.save(path)
+    elif im.size != (W, H):
         canvas = Image.new("RGB", (W, H), CREAM)
         canvas.paste(im, ((W - im.width) // 2, (H - im.height) // 2))
         canvas.save(path)
@@ -124,9 +136,19 @@ def narration_ms(proj: Path, last_end: int) -> int:
     return last_end + 600
 
 
+def detect_columns(im: Image.Image, expected: int):
+    """Như detect_bands nhưng theo trục ngang: chuyển vị ảnh, tìm dải, rồi chuyển lại (x0, y0, x1, y1)."""
+    boxes = detect_bands(im.transpose(Image.TRANSPOSE), expected)
+    return [(y0, x0, y1, x1) for (x0, y0, x1, y1) in boxes]
+
+
 def main(proj_dir: str) -> int:
+    global W, H
     proj = Path(proj_dir)
     plan = json.loads((proj / "plan.json").read_text(encoding="utf-8"))
+    landscape = plan.get("layout") == "landscape"
+    if landscape:
+        W, H = 1280, 720
     cues = {c["index"]: c for c in parse_srt(proj / "input.srt")}
     scenes = plan["scenes"]
     total_ms = narration_ms(proj, max(c["end"] for c in cues.values()))
@@ -137,7 +159,10 @@ def main(proj_dir: str) -> int:
         img_path = proj / sc["image"]
         im = pad_to_canvas(img_path)
         bands = sc["bands"]
-        boxes = detect_bands(im, len(bands))
+        if all("box" in b for b in bands):          # khung chỉ định tay [x0, y0, x1, y1] trên khung hình chuẩn
+            boxes = [tuple(b["box"]) for b in bands]
+        else:
+            boxes = (detect_columns if landscape else detect_bands)(im, len(bands))
         if len(boxes) != len(bands):
             print(f"[!] {sc['image']}: phát hiện {len(boxes)} dải, kế hoạch cần {len(bands)} — kiểm tra ảnh.")
             problems += 1
@@ -152,7 +177,7 @@ def main(proj_dir: str) -> int:
         elements = []
         for bi, b in enumerate(bands):
             # "band" (tuỳ chọn) = vị trí dải từ trên xuống (0 là trên cùng); mặc định theo thứ tự khai báo
-            x0, y0, x1, y1 = boxes[b.get("band", bi)]
+            x0, y0, x1, y1 = tuple(b["box"]) if "box" in b else boxes[b.get("band", bi)]
             x0, y0 = max(0, x0 - PAD), max(0, y0 - PAD)
             x1, y1 = min(W - 1, x1 + PAD), min(H - 1, y1 + PAD)
             st = starts[bi]
@@ -164,9 +189,10 @@ def main(proj_dir: str) -> int:
                 "id": f"band-{bi + 1}", "label": b["label"], "sequence": bi + 1,
                 "narrativeRole": b["role"], "type": "object", "subtitle": sub,
                 "region": {"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0},
-                "reveal": {"direction": "top_to_bottom", "startMs": st, "durationMs": end - st,
+                "reveal": {"direction": "left_to_right" if landscape else "top_to_bottom", "startMs": st, "durationMs": end - st,
                            "maskPaddingPx": 0, "protectedRegions": []},
-                "handPath": {"start": [cx, y0], "end": [cx, y1], "easing": "easeInOut"},
+                "handPath": ({"start": [x0, (y0 + y1) // 2], "end": [x1, (y0 + y1) // 2], "easing": "easeInOut"} if landscape
+                         else {"start": [cx, y0], "end": [cx, y1], "easing": "easeInOut"}),
             })
         ann = {"sceneId": f"scene-{si + 1:02d}", "canvas": {"width": W, "height": H},
                "storyBasis": sc.get("story", ""), "sceneDurationMs": scene_ms, "elements": elements}

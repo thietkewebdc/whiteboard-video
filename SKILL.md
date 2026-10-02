@@ -228,3 +228,15 @@ Cách dùng:
 ```
 
 Gói xuất nằm trong `~/Documents/code/video-xuat/<thương-hiệu>/` (đổi bằng `--export-dir`). Đã có thêm các công cụ: `scripts/auto_annotate.py` (tự chia vùng cho ảnh xếp thành dải ngang), `scripts/social_layout.py` (bố cục, ảnh bìa, slug), `scripts/gen_openai_image.py` (tạo ảnh), `scripts/vieneu_batch.py` (giọng VieNeu).
+
+## Video NGANG 16:9 cho YouTube (kể chuyện lịch sử, kiến thức)
+
+Ảnh sinh ở 1536x1024 với các nhóm đối tượng xếp thành **cột** trái → phải (chừa lề trống trên/dưới), rồi:
+
+```bash
+# plan.json: thêm "layout": "landscape" ở cấp trên cùng; "bands" khi đó là các cột; "box": [x0,y0,x1,y1] (tuỳ chọn) chỉ định khung tay
+<ENV_PY> scripts/auto_annotate.py assets/whiteboard/<dự-án>          # cắt 16:9, thu 1280x720, tạo annotation + _check.png
+<ENV_PY> scripts/finish_landscape.py assets/whiteboard/<dự-án>      # render 1920x1080 → ghép → phụ đề vàng → giọng → ảnh bìa 1280x720
+```
+
+`meta.json` cần `{"hook": "... [TỪ KHÓA] ..."}`; đầu ra `video-xuat/lich-su/<slug>.mp4` và `<slug>-thumbnail.jpg`.
