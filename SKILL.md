@@ -240,3 +240,5 @@ Gói xuất nằm trong `~/Documents/code/video-xuat/<thương-hiệu>/` (đổi
 ```
 
 `meta.json` cần `{"hook": "... [TỪ KHÓA] ..."}`; đầu ra `video-xuat/lich-su/<slug>.mp4` và `<slug>-thumbnail.jpg`.
+
+**Nhạc nền không bản quyền:** `scripts/make_epic_music.py --duration <giây> --out nhac.mp3` tự sáng tác nhạc hào hùng gốc (pad dàn dây + trống taiko, hợp âm Rê thứ); thêm `--music nhac.mp3` cho `finish_landscape.py` để ghép (nhạc tự hạ nhỏ khi có giọng, nhỏ dần ở cuối). Giọng đọc tiếng Anh: dùng VieNeu (song ngữ Anh-Việt) với `--voice "MC Phong Kham"`; viết kịch bản mỗi câu một dòng để khớp `plan.json` của bản tiếng Việt.

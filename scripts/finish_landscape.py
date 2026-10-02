@@ -108,6 +108,8 @@ def main():
     ap.add_argument("--accent", default="196,24,24")
     ap.add_argument("--tag", default="LỊCH SỬ THẾ GIỚI")
     ap.add_argument("--thumb-only", action="store_true")
+    ap.add_argument("--music", help="file nhạc nền (mp3/wav); tự hạ nhỏ khi có giọng (sidechain) và nhỏ dần ở cuối")
+    ap.add_argument("--music-gain", type=float, default=0.55, help="độ lớn nhạc so với bản gốc (mặc định 0.55)")
     a = ap.parse_args()
     proj = Path(a.project).resolve()
     plan = json.loads((proj / "plan.json").read_text(encoding="utf-8"))
@@ -133,10 +135,20 @@ def main():
     ass = proj / "input.ass"
     srt_to_ass(proj / "input.srt", ass)
     out = export / f"{slug}.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(final), "-i", str(proj / "narration.m4a"),
-                    "-vf", f"subtitles={ass.name}", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "libx264", "-crf", "20",
-                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
-                    str(out)], check=True, cwd=str(proj))
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(final), "-i", str(proj / "narration.m4a")]
+    if a.music:
+        cmd += ["-i", str(Path(a.music).resolve())]
+        fc = (f"[1:a]asplit=2[v][vsc];[2:a]volume={a.music_gain}[m];"
+              "[m][vsc]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=450[md];"
+              "[v][md]amix=inputs=2:duration=first:normalize=0,afade=t=out:st=%s:d=3[aout]")
+        dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
+                                             "default=nw=1:nk=1", str(proj / "narration.m4a")], text=True))
+        cmd += ["-filter_complex", fc % max(0, dur - 3), "-map", "0:v:0", "-map", "[aout]"]
+    else:
+        cmd += ["-map", "0:v:0", "-map", "1:a:0"]
+    subprocess.run(cmd + ["-vf", f"subtitles={ass.name}", "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p",
+                          "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out)],
+                   check=True, cwd=str(proj))
     print(f"OUTPUT={out}")
 
 
